@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useProductStore } from '../store/useProductStore';
+import { useCartStore } from '../store/useCartStore';
 
 // Image Imports
 import smartphoneImg from '../assets/smartphones.jpg'; 
@@ -13,12 +14,30 @@ import EliteBookImg from '../assets/elite keyboard.jpeg';
 import heroImg from '../assets/banner.jpg'; 
 import iphoneImg from '../assets/iphone 15 pro.jpeg';
 
+
 export default function Home() {
   // --- BACKEND DATA INTEGRATION ---
   const { products, fetchProducts } = useProductStore();
+  
+  // 2. Initialize the addToCart action from your store
+  const addToCart = useCartStore((state) => state.addToCart);
+  
+  const [cartStatus, setCartStatus] = useState({});
+
+  // 3. Update this function to accept the whole product object
+  const handleAddToCart = (product) => {
+    // This actually adds it to the cart
+    addToCart(product); 
+    
+    // This provides the UI feedback (checkmark)
+    setCartStatus(prev => ({ ...prev, [product.id]: true }));
+    setTimeout(() => setCartStatus(prev => ({ ...prev, [product.id]: false })), 2000);
+  };
 
   // Banner Slide Data
+
   const slides = [
+
     {
       img: smartphoneImg,
       tag: "PREMIUM MOBILE",
@@ -60,6 +79,7 @@ export default function Home() {
   const recentArrivals = useMemo(() => {
     return [...products].reverse().slice(0, 10);
   }, [products]);
+  
 
   return (
     <div className="bg-white text-slate-800">
@@ -141,11 +161,16 @@ export default function Home() {
                       <span className="text-[9px] font-black text-blue-500 uppercase mb-1">{p.brand}</span>
                       <h4 className="text-xs font-bold h-10 line-clamp-2 mb-2 group-hover:text-blue-600 uppercase leading-tight">{p.name}</h4>
                       <p className="text-slate-900 font-black text-base mb-4">Ush {Number(p.price).toLocaleString()}</p>
-                      <Link to={`/shop`} className="mt-auto">
-                        <button className="w-full py-2 border-2 border-blue-600 text-blue-600 font-bold rounded-lg hover:bg-blue-600 hover:text-white transition-all uppercase text-[10px] active:scale-95">
-                            Details
-                        </button>
-                      </Link>
+                      <button 
+      onClick={() => handleAddToCart(p)} // 4. Pass the whole product 'p' here
+      className={`w-full py-3 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all active:scale-95 ${
+        cartStatus[p.id] 
+        ? "bg-green-600 text-white" 
+        : "bg-slate-900 text-white hover:bg-blue-600 shadow-md hover:shadow-blue-200"
+      }`}
+    >
+      {cartStatus[p.id] ? "✓ Added" : "Add to Cart"}
+    </button>
                     </div>
                   </div>
                 )) : (

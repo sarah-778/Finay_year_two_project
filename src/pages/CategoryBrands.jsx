@@ -5,26 +5,42 @@ export default function CategoryBrands() {
   const { slug } = useParams();
 
   // Data mapping matching your Home.jsx logic
+  // Data mapping matching your Home.jsx and Admin logic
   const categoryData = {
     "smartphones": {
       title: "Smartphone Brands",
       description: "Select a brand to view original phones and spare parts.",
       brands: ["Apple iPhone", "Samsung Galaxy", "Google Pixel", "Huawei", "Xiaomi", "Oppo", "Tecno & Infinix"]
     },
-    "laptops": {
-      title: "Laptop & Computing",
-      description: "Professional machines and high-performance components.",
-      brands: ["MacBook", "HP", "Dell", "Lenovo", "Asus", "Acer", "Microsoft Surface"]
+    "phone-spares": {
+      title: "Phone Spare Parts",
+      description: "Quality replacement screens, batteries, and charging ports.",
+      brands: ["Original Screens", "Charging Ports", "Batteries", "Back Covers", "Camera Modules"]
     },
     "phone-chargers": {
       title: "Charging Solutions",
       description: "Fast chargers and original cables for all devices.",
       brands: ["Apple", "Samsung", "Oraimo", "Anker", "Baseus"]
     },
+    "laptops": {
+      title: "Laptop & Computing",
+      description: "Professional machines and high-performance components.",
+      brands: ["MacBook", "HP", "Dell", "Lenovo", "Asus", "Acer", "Microsoft Surface"]
+    },
+    "desktops": {
+      title: "Desktop Computers",
+      description: "All-in-ones, mini PCs, and powerful tower workstations.",
+      brands: ["iMac", "HP Pavilion", "Dell OptiPlex", "Lenovo ThinkCentre", "Custom Build"]
+    },
+    "laptop-chargers": {
+      title: "Laptop Power Adapters",
+      description: "Replacement chargers for all major laptop brands.",
+      brands: ["Universal", "Apple MagSafe", "HP Smart AC", "Dell Type-C", "Lenovo Slim Tip"]
+    },
     "pc-spares": {
-      title: "Replacement Parts",
-      description: "Internal components, screens, and batteries.",
-      brands: ["Screens", "Keyboards", "Batteries", "SSD Storage", "RAM"]
+      title: "PC Replacement Parts",
+      description: "Internal components, screens, and upgrade modules.",
+      brands: ["Screens", "Keyboards", "Internal Batteries", "SSD Storage", "RAM"]
     }
   };
 

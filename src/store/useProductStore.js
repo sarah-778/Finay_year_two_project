@@ -9,23 +9,46 @@ export const useProductStore = create((set) => ({
     set({ loading: true });
     try {
       const { data } = await api.get('/products');
-      set({ products: data, loading: false });
-    } catch (error) { set({ loading: false }); }
+      // Ensure data is an array before setting
+      set({ products: Array.isArray(data) ? data : [], loading: false });
+    } catch (error) {
+      set({ loading: false });
+      console.error("Fetch failed:", error);
+    }
   },
 
-  addProduct: async (productData) => {
+  addProduct: async (formData) => {
     try {
-      const { data } = await api.post('/products', productData);
-      set((state) => ({ products: [data.product, ...state.products] }));
+      // 1. We MUST set headers to multipart/form-data for images
+      // 2. We use formData directly
+      const { data } = await api.post('/products', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      // FIX: Your controller returns the product directly or as {product: ...}
+      // This handles both cases to prevent the "undefined" error
+      const newProduct = data.product ? data.product : data;
+
+      set((state) => ({ 
+        products: [newProduct, ...state.products] 
+      }));
+      
       return data;
     } catch (error) {
-      // This allows the AdminDashboard's 'catch' block to see the error
-      throw error;
+      console.error("Upload Error in Store:", error.response?.data || error.message);
+      throw error; // Re-throw so the Dashboard can show the alert
     }
   },
 
   deleteProduct: async (id) => {
-    await api.delete(`/products/${id}`);
-    set((state) => ({ products: state.products.filter(p => p.id !== id) }));
+    try {
+      await api.delete(`/products/${id}`);
+      set((state) => ({ 
+        products: state.products.filter(p => p.id !== id) 
+      }));
+    } catch (error) {
+      console.error("Delete failed:", error);
+      alert("Failed to delete asset. It might be linked to an order.");
+    }
   }
 }));

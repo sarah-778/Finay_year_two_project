@@ -1,5 +1,8 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+
 export default function Footer() {
-  const phoneNumber = "256786315298"; // Format for WhatsApp link (no + or spaces)
+  const phoneNumber = "256786315298"; // Format for WhatsApp link
   
   return (
     <footer className="bg-slate-900 text-white pt-16 pb-8 px-6 mt-12">
@@ -15,7 +18,6 @@ export default function Footer() {
             <span className="text-4xl text-slate-400">🎧</span>
             <div>
               <p className="text-slate-400 text-sm uppercase font-bold">Contact Us:</p>
-              {/* Active WhatsApp Link */}
               <a 
                 href={`https://wa.me/${phoneNumber}`} 
                 target="_blank" 
@@ -38,42 +40,66 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* What We Do */}
+        {/* What We Do -> Navigates to ABOUT US */}
         <div>
           <h4 className="font-bold uppercase mb-6 tracking-widest text-sm text-slate-200">
             What We Do
           </h4>
           <ul className="text-slate-400 text-sm space-y-4">
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Computer & Laptop Repairs</li>
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Phone Repairs & Screen Replacement</li>
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Software Installation & Troubleshooting</li>
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">System Upgrades & Maintenance</li>
+            <li>
+              <Link to="/about" className="hover:text-blue-400 transition-colors">Computer & Laptop Repairs</Link>
+            </li>
+            <li>
+              <Link to="/about" className="hover:text-blue-400 transition-colors">Phone Repairs & Screen Replacement</Link>
+            </li>
+            <li>
+              <Link to="/about" className="hover:text-blue-400 transition-colors">Software Installation & Troubleshooting</Link>
+            </li>
+            <li>
+              <Link to="/about" className="hover:text-blue-400 transition-colors">System Upgrades & Maintenance</Link>
+            </li>
           </ul>
         </div>
 
-        {/* Products We Sell */}
+        {/* Products We Sell -> Navigates to ALL PRODUCTS */}
         <div>
           <h4 className="font-bold uppercase mb-6 tracking-widest text-sm text-slate-200">
             Products We Sell
           </h4>
           <ul className="text-slate-400 text-sm space-y-4">
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Smartphones (Multiple Brands)</li>
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Laptops & Desktop Computers</li>
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Chargers, Cables & Accessories</li>
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Computer & Phone Spare Parts</li>
+            <li>
+              <Link to="/all-products" className="hover:text-blue-400 transition-colors">Smartphones (Multiple Brands)</Link>
+            </li>
+            <li>
+              <Link to="/all-products" className="hover:text-blue-400 transition-colors">Laptops & Desktop Computers</Link>
+            </li>
+            <li>
+              <Link to="/all-products" className="hover:text-blue-400 transition-colors">Chargers, Cables & Accessories</Link>
+            </li>
+            <li>
+              <Link to="/all-products" className="hover:text-blue-400 transition-colors">Computer & Phone Spare Parts</Link>
+            </li>
           </ul>
         </div>
 
-        {/* Customer Support */}
+        {/* Customer Support -> Navigates to Home (Navbar Area) */}
         <div>
           <h4 className="font-bold uppercase mb-6 tracking-widest text-sm text-slate-200">
             Customer Support
           </h4>
           <ul className="text-slate-400 text-sm space-y-4">
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">About IT Arena</li>
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Repair Warranty Information</li>
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Delivery & Pickup Services</li>
-            <li className="hover:text-blue-400 transition-colors cursor-pointer">Technical Support & Help Desk</li>
+            <li>
+              <Link to="/about" className="hover:text-blue-400 transition-colors">About IT Arena</Link>
+            </li>
+            <li>
+              <Link to="/" className="hover:text-blue-400 transition-colors">Repair Warranty Information</Link>
+            </li>
+            <li>
+              <Link to="/" className="hover:text-blue-400 transition-colors">Delivery & Pickup Services</Link>
+            </li>
+            <li>
+              <Link to="/" className="hover:text-blue-400 transition-colors">Technical Support & Help Desk</Link>
+            </li>
           </ul>
         </div>
       </div>

@@ -1,11 +1,11 @@
 import { Link } from "react-router-dom";
-import banner from "../assets/banner.jpg";
+import banner from "../assets/laptops.jpg";
 
 export default function About() {
   return (
     <div className="bg-slate-50 min-h-screen">
 
-      {/* 🔵 Banner Section */}
+      {/* Banner Section */}
       <div className="max-w-6xl mx-auto pt-10 px-6">
         <div className="relative h-[50vh] md:h-[60vh] w-full rounded-[2.5rem] overflow-hidden shadow-2xl">
           <img
@@ -21,18 +21,11 @@ export default function About() {
             <p className="max-w-2xl text-lg text-gray-200 font-medium">
               Your trusted technology hub for hardware repairs and quality mobile devices.
             </p>
-
-            <Link
-              to="/contact"
-              className="mt-6 bg-blue-600 hover:bg-blue-700 transition px-8 py-3 rounded-xl font-bold uppercase text-sm tracking-widest text-white"
-            >
-              Contact Us
-            </Link>
           </div>
         </div>
       </div>
 
-      {/* 🔵 About Content */}
+      {/* About Content */}
       <div className="max-w-6xl mx-auto py-16 px-6">
 
         {/* Who We Are */}
@@ -78,7 +71,6 @@ export default function About() {
 
           <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-6">
 
-            {/* Computer Repairs */}
             <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-500 transition duration-300">
               <h4 className="font-black mb-3 text-slate-800 text-lg uppercase tracking-tight">
                 Computer Repairs
@@ -89,7 +81,6 @@ export default function About() {
               </p>
             </div>
 
-            {/* Phone Sales (REPLACED) */}
             <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-500 transition duration-300">
               <h4 className="font-black mb-3 text-slate-800 text-lg uppercase tracking-tight">
                 Phone Sales
@@ -100,7 +91,6 @@ export default function About() {
               </p>
             </div>
 
-            {/* Software Solutions */}
             <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-500 transition duration-300">
               <h4 className="font-black mb-3 text-slate-800 text-lg uppercase tracking-tight">
                 Software Solutions
@@ -112,6 +102,16 @@ export default function About() {
             </div>
 
           </div>
+        </div>
+
+        {/* Contact Button at Bottom */}
+        <div className="mt-16 text-center">
+          <Link
+            to="/contact-us"  // ✅ Link to your ContactUs page
+            className="inline-block bg-blue-600 hover:bg-blue-700 transition px-12 py-4 rounded-2xl font-bold uppercase text-white tracking-widest text-lg"
+          >
+            Contact Us
+          </Link>
         </div>
 
       </div>
