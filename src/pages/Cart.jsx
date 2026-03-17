@@ -71,10 +71,11 @@ export default function Cart() {
                 <span className="text-blue-400">UGX {getTotalPrice().toLocaleString()}</span>
               </div>
             </div>
-            
+            <Link to="/checkout">
             <button className="w-full bg-blue-600 py-5 rounded-2xl font-black uppercase tracking-widest text-sm hover:bg-white hover:text-blue-600 transition-all shadow-lg active:scale-95">
               Proceed to Checkout
             </button>
+            </Link>
           </div>
         </div>
       </div>

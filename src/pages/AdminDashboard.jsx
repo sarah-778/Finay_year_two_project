@@ -2,23 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { useAuthStore } from '../store/useAuthStore';
 import { useProductStore } from '../store/useProductStore';
 import { useRepairStore } from '../store/useRepairStore';
+import { useOrderStore } from '../store/useOrderStore'; 
+
 import { 
   HiOutlineCube,
   HiOutlineTruck,
   HiOutlineUserGroup,
-  HiOutlineCog
+  HiOutlineCog,
+  HiOutlineTrash
 } from "react-icons/hi";
 
 const AdminDashboard = () => {
   const { products, fetchProducts, addProduct, deleteProduct } = useProductStore();
-
+  const { orders, loading, fetchOrders, updateOrderStatus, deleteOrder } = useOrderStore();
   // --- REPAIR STORE ---
   const {
     repairSamples,
     fetchRepairSamples,
     addRepairSample,
     userRepairRequests,
+    deleteRepairSample,
+    updateRepairStatus,
     fetchUserRepairs,
+    
     
   } = useRepairStore();
 
@@ -54,6 +60,7 @@ const categoryData = {
     fetchRepairSamples();
     fetchUserRepairs();
     fetchAllUsers();
+    fetchOrders();
   }, []);
 
   // --- Asset handlers ---
@@ -93,6 +100,34 @@ const categoryData = {
     }
   };
 
+  const StatsOverview = () => {
+    // Calculate stats from your existing store data
+    const totalRevenue = orders
+      .filter(o => o.status === 'delivered')
+      .reduce((acc, curr) => acc + Number(curr.total), 0);
+  
+    const pendingRepairs = (userRepairRequests || []).filter(r => r.status !== 'completed').length;
+    const lowStockItems = products.filter(p => p.stock < 5).length;
+  
+    const statCards = [
+      { label: "Total Revenue", value: `UGX ${totalRevenue.toLocaleString()}`, color: "text-green-600", bg: "bg-green-50" },
+      { label: "Active Repairs", value: pendingRepairs, color: "text-amber-600", bg: "bg-amber-50" },
+      { label: "Low Stock Alerts", value: lowStockItems, color: "text-red-600", bg: "bg-red-50" },
+      { label: "Total Community", value: allUsers.length, color: "text-blue-600", bg: "bg-blue-50" },
+    ];
+  
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+        {statCards.map((stat, i) => (
+          <div key={i} className={`${stat.bg} p-6 rounded-[2rem] border border-white shadow-sm`}>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">{stat.label}</p>
+            <p className={`text-2xl font-black ${stat.color} tracking-tighter`}>{stat.value}</p>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   // --- Repair handlers ---
   const handleRepairImageChange = (e) => {
     const file = e.target.files[0];
@@ -102,19 +137,67 @@ const categoryData = {
     }
   };
 
-  const handleRepairSubmit = async (e) => {
-    e.preventDefault();
-    const data = new FormData();
-    data.append('device', repairForm.device);
-    data.append('issue', repairForm.issue);
-    if (repairForm.image) data.append('image', repairForm.image);
+  const getStatusStyles = (status) => {
+    switch (status) {
+      case 'delivered': return 'border-green-500 bg-green-50 text-green-600';
+      case 'processing': return 'border-blue-500 bg-blue-50 text-blue-600';
+      case 'cancelled': return 'border-red-500 bg-red-50 text-red-600';
+      default: return 'border-slate-900 bg-slate-900 text-white'; // Pending
+    }
+  };
 
-    try {
-      await addRepairSample(data); // Add to backend store
-      setRepairForm({ device: '', issue: '', image: null });
-      setRepairPreview(null);
-    } catch (error) {
-      alert("Failed to add repair sample.");
+ // Inside AdminDashboard.jsx
+// --- Updated Repair handlers with deeper error checking ---
+const handleRepairSubmit = async (e) => {
+  e.preventDefault();
+  if (!repairForm.device || !repairForm.issue) return alert("Please fill in Device and Issue.");
+  
+  setIsSaving(true);
+  const data = new FormData();
+  data.append('device', repairForm.device);
+  data.append('issue', repairForm.issue);
+  data.append('type', 'sample'); 
+  if (repairForm.image) data.append('image', repairForm.image);
+
+  try {
+    await addRepairSample(data); 
+    setRepairForm({ device: '', issue: '', image: null });
+    setRepairPreview(null);
+    alert("✅ Portfolio sample added successfully!");
+  } catch (error) {
+    // This will tell you EXACTLY what Laravel is unhappy about
+    const serverMessage = error.response?.data?.message || error.message;
+    const validationErrors = error.response?.data?.errors 
+      ? Object.values(error.response.data.errors).flat().join('\n') 
+      : "";
+    
+    alert(`❌ Failed to add repair sample:\n${serverMessage}\n${validationErrors}`);
+    console.error("Upload Error:", error.response?.data);
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+const handleStatusChange = async (id, newStatus) => {
+  try {
+    await updateRepairStatus(id, newStatus);
+    // Optional: A small toast or notification instead of a loud alert
+  } catch (error) {
+    alert("Failed to update status. Check your internet or server logs.");
+  }
+};
+
+// Helper to safely format image URLs
+const getImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  // Cleans up 'storage/' or '/storage' prefixes to avoid double-slashes
+  const cleanPath = path.replace(/^\/?storage\//, "");
+  return `http://localhost:8000/storage/${cleanPath}`;
+};
+  const handleDeleteSample = async (id) => {
+    if (window.confirm("Are you sure you want to delete this portfolio sample?")) {
+      await deleteRepairSample(id);
     }
   };
 
@@ -142,6 +225,8 @@ const categoryData = {
 
             {/* Right Column */}
             <div className="w-full md:w-7/12 p-10 flex flex-col">
+            {/* NEW STATS ROW */}
+              <StatsOverview />
               <div className="flex justify-between items-start mb-8">
                 <div>
                   <h2 className="text-2xl font-black text-slate-800 tracking-tighter">NEW ASSET ENTRY</h2>
@@ -255,7 +340,9 @@ const categoryData = {
                           <p className="text-[10px] font-bold text-blue-500 uppercase">{p.brand}</p>
                         </div>
                       </td>
-                      <td className="p-6 text-center font-black text-sm">{p.stock}</td>
+                      <td className={`p-6 text-center font-black text-sm ${p.stock < 5 ? 'text-red-500 animate-pulse' : 'text-slate-800'}`}>
+          {p.stock}
+        </td>
                       <td className="p-6 text-right font-bold text-sm">UGX {Number(p.price).toLocaleString()}</td>
                       <td className="p-6 text-center">
                         <button onClick={() => deleteProduct(p.id)} className="text-red-500 text-[10px] font-black uppercase hover:bg-red-50 px-3 py-1 rounded-lg transition-all">Remove</button>
@@ -267,10 +354,111 @@ const categoryData = {
             </div>
           )}
 
-          {/* ORDERS */}
-          {currentView === 'orders' && (
-            <div className="text-center font-bold text-slate-500">Orders section coming soon...</div>
-          )}
+        {/* ORDERS MANAGEMENT */}
+{currentView === 'orders' && (
+  <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
+    <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+      <div>
+        <h3 className="font-black text-slate-800 uppercase tracking-tight text-xl">Order Fulfillment</h3>
+        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Global Logistics Control</p>
+      </div>
+      <div className="flex gap-4">
+        <span className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">
+          {orders.length} Total Orders
+        </span>
+      </div>
+    </div>
+
+    <div className="flex-1 overflow-y-auto">
+      <table className="w-full text-left border-collapse">
+        <thead className="sticky top-0 bg-white z-10 border-b border-slate-100">
+          <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+            <th className="p-6">Customer & ID</th>
+            <th className="p-6">Ordered Items</th>
+            <th className="p-6">Delivery Address</th>
+            <th className="p-6 text-right">Total (UGX)</th>
+            <th className="p-6 text-center">Status Control</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-50">
+          {orders
+            .filter(o => o.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) || o.order_number.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map((order) => (
+            <tr key={order.id} className="hover:bg-slate-50/50 transition-colors align-top">
+              {/* Customer Info */}
+              <td className="p-6">
+                <p className="font-black text-blue-600 text-[10px] mb-1 tracking-widest uppercase">{order.order_number}</p>
+                <p className="font-black text-sm text-slate-800 uppercase">{order.customer_name}</p>
+                <p className="text-[10px] font-bold text-slate-400">{order.phone}</p>
+              </td>
+
+              {/* Items List */}
+              <td className="p-6">
+                <div className="space-y-2">
+                  {order.items.map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 group">
+                      <div className="w-6 h-6 rounded bg-slate-100 p-0.5 border border-slate-200">
+                        <img src={item.image} className="w-full h-full object-contain" alt="" />
+                      </div>
+                      <p className="text-[10px] font-bold text-slate-600 uppercase">
+                        {item.quantity}x <span className="font-black text-slate-800">{item.name}</span>
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </td>
+
+              {/* Delivery Info */}
+              <td className="p-6">
+                <p className="text-[10px] font-black text-slate-800 uppercase mb-1 underline decoration-blue-500 decoration-2">
+                  {order.district}
+                </p>
+                <p className="text-[10px] font-bold text-slate-500 leading-tight max-w-[180px]">
+                  {order.address}
+                </p>
+              </td>
+
+              {/* Financials */}
+              <td className="p-6 text-right">
+                <p className="font-black text-sm text-slate-900">{Number(order.total).toLocaleString()}</p>
+                <p className="text-[9px] font-bold text-green-600 uppercase">Fee: {Number(order.delivery_fee).toLocaleString()}</p>
+              </td>
+
+              {/* Status Management */}
+              <td className="p-6">
+                <div className="flex flex-col gap-2 items-center">
+                <select 
+  value={order.status}
+  onChange={(e) => updateOrderStatus(order.id, e.target.value)}
+  className={`w-full text-[9px] font-black uppercase px-3 py-2 rounded-xl outline-none cursor-pointer border-2 transition-all ${getStatusStyles(order.status)}`}
+>
+                    <option value="pending">Pending Receipt</option>
+                    <option value="processing">Processing Order</option>
+                    <option value="delivered">Completed/Delivered</option>
+                    <option value="cancelled">Cancelled</option>
+                  </select>
+                  <button 
+                    onClick={() => { if(window.confirm("Archive this order?")) deleteOrder(order.id) }}
+                    className="text-[8px] font-bold text-slate-300 hover:text-red-500 uppercase tracking-tighter transition-colors"
+                  >
+                    Archive Order
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {orders.length === 0 && (
+        <div className="py-32 text-center">
+          <HiOutlineTruck className="mx-auto text-4xl text-slate-200 mb-4" />
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">No Active Logistics Found</p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
           {/* USERS */}
          {currentView === 'users' && (
@@ -324,52 +512,146 @@ const categoryData = {
             </div>
           )}
 
-          {/* REPAIR */}
-          {currentView === 'repair' && (
-            <div className="grid md:grid-cols-2 gap-10">
-              {/* Left: User-submitted repair requests */}
-              <div className="bg-white p-8 rounded-3xl shadow-lg overflow-y-auto max-h-[calc(100vh-160px)]">
-                <h2 className="text-xl font-black text-slate-800 mb-6">User Repair Requests</h2>
-                {userRepairRequests.length === 0 ? (
-                  <p className="text-slate-500 text-sm">No repair requests yet.</p>
+         {/* REPAIR MANAGEMENT SECTION */}
+{currentView === 'repair' && (
+  <div className="grid lg:grid-cols-12 gap-8 h-[calc(100vh-160px)]">
+    
+    {/* LEFT COLUMN: User Repair Requests */}
+<div className="lg:col-span-7 flex flex-col h-full">
+  <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col h-full overflow-hidden">
+    <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col">
+        <h2 className="text-xl font-black text-slate-800 uppercase tracking-tighter">
+          Incoming Requests
+        </h2>
+        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Live Engineering Pipeline</p>
+      </div>
+      <span className="bg-amber-100 text-amber-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">
+        {(userRepairRequests || []).filter(r => r.type === 'user').length} Requests
+      </span>
+    </div>
+
+    <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+      {(!userRepairRequests || userRepairRequests.filter(r => r.type === 'user').length === 0) ? (
+        <div className="py-20 text-center text-slate-400 font-bold text-xs uppercase italic">No pending requests</div>
+      ) : (
+        userRepairRequests
+          .filter(r => r.type === 'user')
+          .map((r, idx) => (
+          <div key={r.id || idx} className="bg-slate-50 border border-slate-100 p-5 rounded-[1.5rem] flex items-center justify-between group hover:border-blue-200 transition-all">
+            <div className="flex items-center gap-4">
+              <div className="h-14 w-14 rounded-xl bg-slate-200 overflow-hidden flex items-center justify-center border-2 border-white shadow-sm">
+                {r.image ? (
+                  <img 
+                    src={`http://localhost:8000/storage/${r.image.replace(/^storage\//, "")}`} 
+                    className="h-full w-full object-cover" 
+                    alt="" 
+                  />
                 ) : (
-                  <div className="space-y-4">
-                    {userRepairRequests.map((r, idx) => (
-                      <div key={idx} className="flex items-center gap-4 border p-3 rounded-xl shadow-sm">
-                        {r.image && <img src={r.image} alt="repair" className="h-16 w-16 object-cover rounded-lg" />}
-                        <div>
-                          <p className="font-bold text-sm">{r.device}</p>
-                          <p className="text-xs text-slate-500">{r.issue}</p>
-                          {r.name && <p className="text-[10px] text-slate-400">{r.name} | {r.phone} | {r.email}</p>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <HiOutlineCog className="text-slate-400 animate-spin-slow" />
                 )}
               </div>
-
-              {/* Right: Add Repair Sample */}
-              <div className="bg-white p-8 rounded-3xl shadow-lg">
-                <h2 className="text-xl font-black text-slate-800 mb-6">Add Repair Sample</h2>
-                <form onSubmit={handleRepairSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Device</label>
-                    <input type="text" name="device" value={repairForm.device} onChange={(e) => setRepairForm({...repairForm, device: e.target.value})} required className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Issue</label>
-                    <textarea name="issue" value={repairForm.issue} onChange={(e) => setRepairForm({...repairForm, issue: e.target.value})} required rows={3} className="w-full border border-slate-300 rounded-lg px-4 py-3 outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-slate-700 mb-1">Upload Image</label>
-                    <input type="file" accept="image/*" onChange={handleRepairImageChange} className="w-full" />
-                    {repairPreview && <img src={repairPreview} className="mt-2 h-24 w-24 object-cover rounded-lg" />}
-                  </div>
-                  <button type="submit" className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold uppercase tracking-widest hover:bg-blue-700 transition-all">Add Sample</button>
-                </form>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-black text-sm uppercase text-slate-800">{r.device}</p>
+                  {/* NEW: TRACKING CODE BADGE */}
+                  <span className="bg-blue-600 text-white px-2 py-0.5 rounded-md text-[9px] font-black tracking-widest shadow-sm">
+                    {r.tracking_code || 'ITA-PENDING'}
+                  </span>
+                </div>
+                <p className="text-[10px] font-bold text-slate-500 line-clamp-1">{r.issue}</p>
+                <div className="mt-1 flex items-center gap-2">
+                  <p className="text-[9px] font-black text-blue-500 uppercase tracking-tighter">
+                    {r.name || 'Client'} • {r.phone || 'No Contact'}
+                  </p>
+                </div>
               </div>
             </div>
-          )}
+            
+            <div className="flex flex-col items-end gap-2">
+              <select 
+                value={r.status || 'pending'} 
+                onChange={(e) => updateRepairStatus(r.id, e.target.value)}
+                className={`text-[9px] font-black uppercase px-4 py-2.5 rounded-xl outline-none cursor-pointer border-none shadow-sm transition-all ${
+                  r.status === 'completed' ? 'bg-green-500 text-white' : 'bg-slate-900 text-white'
+                }`}
+              >
+                <option value="pending">Received</option>
+                <option value="diagnosing">Diagnosis</option>
+                <option value="repairing">Repairing</option>
+                <option value="completed">Ready for Pickup</option>
+              </select>
+              <p className="text-[8px] font-bold text-slate-300 uppercase tracking-widest">Set Public Status</p>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+</div>
+    {/* RIGHT COLUMN: Repair Samples */}
+    <div className="lg:col-span-5 flex flex-col gap-6 h-full overflow-hidden">
+      
+      {/* Form Area */}
+      <div className="bg-slate-900 text-white p-8 rounded-[2.5rem] shadow-xl shrink-0">
+        <h2 className="text-sm font-black uppercase tracking-widest mb-4 text-blue-400">Add Portfolio Piece</h2>
+        <form onSubmit={handleRepairSubmit} className="space-y-3">
+          <input 
+            type="text" 
+            placeholder="Device Name" 
+            className="w-full bg-slate-800 border-none rounded-xl p-3 text-xs font-bold text-white outline-none" 
+            value={repairForm.device} 
+            onChange={(e) => setRepairForm({...repairForm, device: e.target.value})} 
+          />
+          <textarea 
+            placeholder="The Solution" 
+            className="w-full bg-slate-800 border-none rounded-xl p-3 text-xs font-bold text-white outline-none" 
+            rows={2} 
+            value={repairForm.issue} 
+            onChange={(e) => setRepairForm({...repairForm, issue: e.target.value})} 
+          />
+          <div className="flex items-center gap-3">
+            <input type="file" onChange={handleRepairImageChange} className="text-[10px] text-slate-400" />
+            {repairPreview && <img src={repairPreview} className="h-10 w-10 rounded-lg object-cover" />}
+          </div>
+          <button type="submit" className="w-full bg-blue-600 text-white py-3 rounded-xl font-black uppercase text-[10px]">
+            Upload Gallery
+          </button>
+        </form>
+      </div>
+
+      {/* Samples List */}
+      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex-1 overflow-hidden flex flex-col">
+        <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-4">Live Portfolio</h2>
+        <div className="overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+          {/* Added Check for repairSamples existence */}
+          {(repairSamples || [])
+            .filter(sample => sample.type === 'sample')
+            .map((sample) => (
+            <div key={sample.id} className="flex items-center gap-3 p-2 rounded-2xl hover:bg-slate-50 transition-all group">
+              <div className="h-12 w-12 rounded-xl bg-slate-100 overflow-hidden border border-slate-200">
+                {sample.image && (
+                  <img 
+                    src={`http://localhost:8000/storage/${sample.image.replace(/^storage\//, "")}`} 
+                    className="h-full w-full object-cover" 
+                    alt="Portfolio"
+                  />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-[11px] font-black text-slate-800 uppercase">{sample.device}</p>
+                <p className="text-[9px] font-bold text-slate-400 line-clamp-1">{sample.issue}</p>
+              </div>
+              <button onClick={() => handleDeleteSample(sample.id)} className="text-slate-300 hover:text-red-500 p-2">
+                <HiOutlineTrash size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
         </div>
       </main>
     </div>

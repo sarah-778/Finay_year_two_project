@@ -22,6 +22,7 @@ export const useCartStore = create(
           set({ cart: [...currentCart, { ...product, quantity: 1 }] });
         }
       },
+      
 
       removeFromCart: (productId) => {
         set({ cart: get().cart.filter((item) => item.id !== productId) });
@@ -48,7 +49,10 @@ export const useCartStore = create(
       getItemCount: () => {
         return get().cart.reduce((sum, item) => sum + item.quantity, 0);
       },
+      
     }),
     { name: 'it-arena-cart' } // Persists cart in local storage
+    
   )
+  
 );

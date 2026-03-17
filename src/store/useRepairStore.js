@@ -105,6 +105,40 @@ export const useRepairStore = create((set) => ({
     } catch (error) {
       console.error("Delete user repair failed:", error);
     }
+  },
+// ... existing code in useRepairStore.js
+trackRepair: async (trackingCode) => {
+  set({ loadingRequests: true });
+  try {
+    const { data } = await api.get(`/repairs/track/${trackingCode}`);
+    set({ loadingRequests: false });
+    return data; 
+  } catch (error) {
+    set({ loadingRequests: false });
+    return null;
   }
+},
+
+// ADD THIS: To update the status from the Admin Dashboard
+// Inside useRepairStore.js
+
+updateRepairStatus: async (id, status) => {
+  try {
+    // 1. Ensure the URL matches the Laravel route: /repairs/{id}/status
+    // 2. We use .patch because we are only updating one field
+    const { data } = await api.patch(`/repairs/${id}/status`, { status });
+
+    set((state) => ({
+      userRepairRequests: state.userRepairRequests.map((r) =>
+        // 3. Laravel returns { message: "...", repair: {...} }
+        // We check for data.repair.status to update the UI
+        r.id === id ? { ...r, status: data.repair.status } : r
+      ),
+    }));
+  } catch (error) {
+    console.error("Failed to update status:", error.response?.data || error.message);
+    alert("Database update failed. Check your Laravel routes.");
+  }
+},
 
 }));

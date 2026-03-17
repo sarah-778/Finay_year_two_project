@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useProductStore } from '../store/useProductStore';
 import { useCartStore } from '../store/useCartStore';
+import { useRepairStore } from '../store/useRepairStore';
 
 // Image Imports
 import smartphoneImg from '../assets/smartphones.jpg'; 
@@ -33,6 +34,10 @@ export default function Home() {
     setCartStatus(prev => ({ ...prev, [product.id]: true }));
     setTimeout(() => setCartStatus(prev => ({ ...prev, [product.id]: false })), 2000);
   };
+  const { trackRepair } = useRepairStore();
+const [trackingId, setTrackingId] = useState("");
+const [trackedRepair, setTrackedRepair] = useState(null);
+const [searchError, setSearchError] = useState(false);
 
   // Banner Slide Data
 
@@ -80,6 +85,28 @@ export default function Home() {
     return [...products].reverse().slice(0, 10);
   }, [products]);
   
+  const handleTrack = async () => {
+    if (!trackingId) return;
+    const result = await trackRepair(trackingId);
+    if (result) {
+      setTrackedRepair(result);
+      setSearchError(false);
+    } else {
+      setTrackedRepair(null);
+      setSearchError(true);
+    }
+  };
+  
+  // Map backend status to your 4-step UI
+  const steps = [
+    { label: "Received", status: "pending" },
+    { label: "Diagnosis", status: "diagnosing" },
+    { label: "Repairing", status: "repairing" },
+    { label: "Ready", status: "completed" }
+  ];
+  
+  // Determine if a step is "done" based on the current repair status
+  const getStepIndex = (status) => steps.findIndex(s => s.status === status);
 
   return (
     <div className="bg-white text-slate-800">
@@ -269,38 +296,57 @@ export default function Home() {
             </Link>
           </section>
 
-          {/* --- LIVE REPAIR TRACKER --- */}
-          <section className="mb-20">
-            <div className="bg-white border-2 border-slate-100 rounded-[2rem] overflow-hidden shadow-sm">
-              <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
-                <h3 className="font-black uppercase tracking-widest text-sm">Live Repair Status</h3>
-                <span className="text-xs text-blue-400 animate-pulse font-bold uppercase underline">System Online</span>
-              </div>
-              <div className="p-10 flex flex-col md:flex-row items-center gap-12">
-                <div className="flex-1 space-y-6">
-                  <h2 className="text-3xl font-black text-slate-800 uppercase">Track Your Device</h2>
-                  <p className="text-slate-500">Enter your Job ID to see exactly where your device is in our engineering pipeline.</p>
-                  <div className="flex gap-2">
-                    <input type="text" placeholder="e.g. ITA-9921" className="flex-1 bg-slate-100 border-none rounded-xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-600" />
-                    <button className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition-all uppercase active:scale-95">Track</button>
-                  </div>
-                </div>
-                <div className="flex-1 w-full grid grid-cols-4 gap-4">
-                  {[
-                    {label: "Received", done: true}, 
-                    {label: "Diagnosis", done: true}, 
-                    {label: "Repairing", done: false}, 
-                    {label: "Ready", done: false}
-                  ].map((step, i) => (
-                    <div key={i} className="text-center">
-                      <div className={`h-2.5 rounded-full mb-3 ${step.done ? 'bg-blue-600' : 'bg-slate-200'}`}></div>
-                      <p className={`text-[10px] font-black uppercase ${step.done ? 'text-blue-600' : 'text-slate-300'}`}>{step.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+          {/* --- REPLACEMENT LIVE REPAIR TRACKER SECTION --- */}
+<section className="mb-20">
+  <div className="bg-white border-2 border-slate-100 rounded-[2rem] overflow-hidden shadow-sm">
+    <div className="bg-slate-900 p-6 text-white flex justify-between items-center">
+      <h3 className="font-black uppercase tracking-widest text-sm">Live Repair Status</h3>
+      <span className="text-xs text-blue-400 animate-pulse font-bold uppercase underline">System Online</span>
+    </div>
+    <div className="p-10 flex flex-col md:flex-row items-center gap-12">
+      <div className="flex-1 space-y-6">
+        <h2 className="text-3xl font-black text-slate-800 uppercase">Track Your Device</h2>
+        <p className="text-slate-500">Enter your Tracking Code to see your device's progress.</p>
+        <div className="flex gap-2">
+          <input 
+            type="text" 
+            placeholder="e.g. ITA-9921" 
+            value={trackingId}
+            onChange={(e) => setTrackingId(e.target.value)}
+            className="flex-1 bg-slate-100 border-none rounded-xl px-5 py-4 outline-none focus:ring-2 focus:ring-blue-600 font-bold" 
+          />
+          <button 
+            onClick={handleTrack}
+            className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-blue-700 transition-all uppercase"
+          >
+            Track
+          </button>
+        </div>
+        {searchError && <p className="text-red-500 text-xs font-bold uppercase">Device not found. Please check your code.</p>}
+        {trackedRepair && (
+          <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+            <p className="text-sm font-black text-blue-900 uppercase">{trackedRepair.device}</p>
+            <p className="text-[10px] font-bold text-blue-600">Current Status: {trackedRepair.status}</p>
+          </div>
+        )}
+      </div>
+      
+      <div className="flex-1 w-full grid grid-cols-4 gap-4">
+        {steps.map((step, i) => {
+          const currentIndex = trackedRepair ? getStepIndex(trackedRepair.status) : -1;
+          const isDone = i <= currentIndex;
+          
+          return (
+            <div key={i} className="text-center">
+              <div className={`h-2.5 rounded-full mb-3 transition-colors duration-500 ${isDone ? 'bg-blue-600' : 'bg-slate-200'}`}></div>
+              <p className={`text-[10px] font-black uppercase ${isDone ? 'text-blue-600' : 'text-slate-300'}`}>{step.label}</p>
             </div>
-          </section>
+          );
+        })}
+      </div>
+    </div>
+  </div>
+</section>
         </main>
       </div>
     </div>
