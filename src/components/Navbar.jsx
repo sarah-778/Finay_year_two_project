@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'; // Added useEffect
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
 import { useCartStore } from '../store/useCartStore';
@@ -9,6 +9,9 @@ import {
   HiOutlineUser 
 } from "react-icons/hi"; 
 
+// IMPORT THE LOGO
+import logo from '../assets/logo.jpeg'; 
+
 export default function Navbar() {
   const { isAuthenticated, logout, user, checkAuth } = useAuthStore(); 
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,7 +21,6 @@ export default function Navbar() {
   
   const itemCount = useCartStore((state) => state.getItemCount?.() || 0);
 
-  // FETCH USER DATA ON LOAD
   useEffect(() => {
     if (isAuthenticated && !user) {
       checkAuth();
@@ -53,10 +55,16 @@ export default function Navbar() {
 
   return (
     <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-8">
-        <Link to="/" className="text-3xl font-black text-blue-600 tracking-tighter shrink-0">
-          IT ARENA
-        </Link>
+      <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-8">
+        
+{/* Logo perfectly aligned with Navbar level */}
+<Link to="/" className="shrink-0 transition-transform hover:scale-105 active:scale-95 flex items-center">
+  <img 
+    src={logo} 
+    alt="IT ARENA" 
+    className="h-14 w-auto object-contain" 
+  />
+</Link>
         
         <form onSubmit={handleSearch} className="flex-1 max-w-2xl hidden md:flex">
           <input 
@@ -64,7 +72,7 @@ export default function Navbar() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search products or services..." 
-            className="w-full border-2 border-blue-600 px-4 py-2 rounded-l-md outline-none text-slate-900 font-medium bg-white"
+            className="w-full border-2 border-blue-600 px-4 py-2 rounded-l-md outline-none text-slate-900 font-medium bg-white focus:ring-2 focus:ring-blue-100"
           />
           <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-r-md font-bold uppercase hover:bg-blue-700 transition-colors">
             Search
@@ -73,7 +81,6 @@ export default function Navbar() {
 
         <div className="flex items-center gap-6 text-sm">
           {isAuthenticated ? (
-            /* USER DROPDOWN SECTION */
             <div 
               className="relative"
               onMouseEnter={() => setIsUserMenuOpen(true)}
@@ -135,7 +142,6 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Sub Navigation */}
       <div className="bg-slate-50 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between py-1">
           <div className="flex gap-8 py-3 text-xs font-bold uppercase tracking-widest text-slate-600">

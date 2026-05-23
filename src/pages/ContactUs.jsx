@@ -1,130 +1,165 @@
 import { useState } from "react";
-import { HiOutlineLocationMarker, HiOutlinePhone, HiOutlineMail, HiOutlineClock } from "react-icons/hi";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import { useAuthStore } from "../store/useAuthStore"; // Ensure path is correct
+import { 
+  HiOutlineLocationMarker, 
+  HiOutlinePhone, 
+  HiOutlineMail, 
+  HiOutlineClock,
+  HiOutlineLockClosed 
+} from "react-icons/hi";
 
 export default function ContactUs() {
+  const navigate = useNavigate();
+  // Change 'token' to 'isAuthenticated' to match your Zustand store
+  const { isAuthenticated, user } = useAuthStore(); 
+
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: user?.name || "", 
+    email: user?.email || "", 
     phone: "",
     message: ""
   });
 
+  const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState({ type: "", msg: "" });
+
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert("Message sent successfully!");
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      message: ""
-    });
+    setLoading(true);
+    setStatus({ type: "", msg: "" });
+
+    // Get the token directly from localStorage since it's not a state in your store
+    const token = localStorage.getItem('token');
+
+    try {
+      const response = await axios.post(
+        "http://localhost:8000/api/contact", 
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, // Proves you are logged in to Laravel
+          }
+        }
+      );
+
+      if (response.status === 201 || response.status === 200) {
+        setStatus({ type: "success", msg: "Message sent! We'll get back to you soon." });
+        setFormData({ ...formData, message: "", phone: "" });
+      }
+    } catch (error) {
+      if (error.response?.status === 401) {
+        setStatus({ type: "error", msg: "Session expired. Please log in again." });
+      } else {
+        setStatus({ 
+          type: "error", 
+          msg: error.response?.data?.message || "Failed to send message." 
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-100 py-12 px-4">
       <div className="max-w-6xl mx-auto">
-
-        {/* Page Title */}
-        <h1 className="text-4xl font-bold text-center mb-6 text-blue-600">
-          Contact IT Arena
+        <h1 className="text-4xl font-black text-center mb-12 text-slate-900 uppercase">
+          Contact <span className="text-blue-600">IT Arena</span>
         </h1>
 
-        <p className="text-center text-slate-700 mb-12">
-          We are located at Sanctity Plaza, Kampala Road. Reach out to us for product inquiries, repairs, or general support.
-        </p>
-
         <div className="grid md:grid-cols-2 gap-10">
-
-          {/* Contact Information */}
-          <div className="bg-white p-8 rounded-lg shadow-lg border border-slate-200">
-            <h2 className="text-2xl font-semibold mb-6 text-blue-600">
-              Contact Information
-            </h2>
-
-            <div className="space-y-4 text-slate-700">
-              <p className="flex items-center gap-2">
-                <HiOutlineLocationMarker className="text-blue-600 text-xl" />
+          {/* Left Side: Info */}
+          <div className="bg-white p-10 rounded-[2rem] shadow-sm">
+            <h2 className="text-xl font-bold mb-6">Contact Information</h2>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-slate-600">
+                <HiOutlineLocationMarker className="text-blue-600" />
                 <span>Sanctity Plaza, Kampala Road</span>
-              </p>
-              <p className="flex items-center gap-2">
-                <HiOutlinePhone className="text-blue-600 text-xl" />
-                <span>+256 700 000000</span>
-              </p>
-              <p className="flex items-center gap-2">
-                <HiOutlineMail className="text-blue-600 text-xl" />
+              </div>
+              <div className="flex items-center gap-3 text-slate-600">
+                <HiOutlinePhone className="text-blue-600" />
+                <span>+256 786315298</span>
+              </div>
+              <div className="flex items-center gap-3 text-slate-600">
+                <HiOutlineMail className="text-blue-600" />
                 <span>itarena@gmail.com</span>
-              </p>
-              <p className="flex items-center gap-2">
-                <HiOutlineClock className="text-blue-600 text-xl" />
-                <span>Mon - Sat (8:00 AM - 7:00 PM)</span>
-              </p>
+              </div>
             </div>
           </div>
 
-          {/* Contact Form */}
-          <div className="bg-slate-800 p-8 rounded-lg shadow-lg">
-            <h2 className="text-2xl font-semibold mb-6 text-blue-400">
-              Send Us a Message
-            </h2>
+          {/* Right Side: THE FORM GATE */}
+          <div className="bg-slate-900 p-10 rounded-[2rem] shadow-xl">
+            {/* We now check for 'isAuthenticated' from your store */}
+            {!isAuthenticated ? (
+              <div className="text-center py-10">
+                <HiOutlineLockClosed className="text-blue-500 text-5xl mx-auto mb-4" />
+                <h3 className="text-white font-bold text-lg mb-2">Members Only</h3>
+                <p className="text-slate-400 mb-6">Please log in to send us a message.</p>
+                <button 
+                  onClick={() => navigate('/login')}
+                  className="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold uppercase text-xs tracking-widest"
+                >
+                  Login Now
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <h2 className="text-white font-bold text-xl mb-4">Send a Message</h2>
+                
+                {status.msg && (
+                  <div className={`p-4 rounded-xl text-xs font-bold ${
+                    status.type === "success" ? "bg-green-500/20 text-green-400" : "bg-red-500/20 text-red-400"
+                  }`}>
+                    {status.msg}
+                  </div>
+                )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Full Name"
+                  className="w-full p-4 rounded-xl bg-slate-800 text-white border border-slate-700 outline-none focus:border-blue-500"
+                  required
+                />
 
-              <input
-                type="text"
-                name="name"
-                placeholder="Your Name"
-                value={formData.name}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded bg-slate-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-              />
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="Email"
+                  className="w-full p-4 rounded-xl bg-slate-800 text-white border border-slate-700 outline-none focus:border-blue-500"
+                  required
+                />
 
-              <input
-                type="email"
-                name="email"
-                placeholder="Your Email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded bg-slate-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-              />
+                <textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  placeholder="How can we help?"
+                  rows="4"
+                  className="w-full p-4 rounded-xl bg-slate-800 text-white border border-slate-700 outline-none focus:border-blue-500"
+                  required
+                ></textarea>
 
-              <input
-                type="text"
-                name="phone"
-                placeholder="Your Phone Number"
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full px-4 py-3 rounded bg-slate-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-              />
-
-              <textarea
-                name="message"
-                placeholder="Your Message"
-                rows="4"
-                value={formData.message}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 rounded bg-slate-700 text-white outline-none focus:ring-2 focus:ring-blue-500"
-              ></textarea>
-
-              <button
-                type="submit"
-                className="w-full bg-blue-600 py-3 rounded font-bold hover:bg-blue-700 transition"
-              >
-                Send Message
-              </button>
-
-            </form>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-blue-600 text-white py-4 rounded-xl font-bold uppercase tracking-widest hover:bg-blue-500 transition-all"
+                >
+                  {loading ? "Sending..." : "Send Message"}
+                </button>
+              </form>
+            )}
           </div>
-
         </div>
       </div>
     </div>

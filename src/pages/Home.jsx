@@ -181,9 +181,15 @@ const [searchError, setSearchError] = useState(false);
              <div className="grid grid-cols-2 lg:grid-cols-5 gap-6">
                 {recentArrivals.length > 0 ? recentArrivals.map((p) => (
                   <div key={p.id} className="border border-slate-100 rounded-xl p-4 group hover:shadow-2xl transition-all bg-white flex flex-col h-full">
-                    <div className="h-44 mb-4 overflow-hidden rounded-lg bg-slate-50">
-                      <img src={p.image} className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" alt={p.name} />
-                    </div>
+                 {/* Change this line inside your recentArrivals.map */}
+<div className="h-44 mb-4 overflow-hidden rounded-lg bg-slate-50">
+  <img 
+    src={p.image?.startsWith('http') ? p.image : `http://localhost:8000/storage/${p.image}`} 
+    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" 
+    alt={p.name} 
+    onError={(e) => { e.target.src = 'https://via.placeholder.com/300?text=No+Image'; }}
+  />
+</div>
                     <div className="flex flex-col flex-1">
                       <span className="text-[9px] font-black text-blue-500 uppercase mb-1">{p.brand}</span>
                       <h4 className="text-xs font-bold h-10 line-clamp-2 mb-2 group-hover:text-blue-600 uppercase leading-tight">{p.name}</h4>

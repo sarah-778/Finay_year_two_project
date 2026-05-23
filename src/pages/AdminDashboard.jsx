@@ -3,7 +3,8 @@ import { useAuthStore } from '../store/useAuthStore';
 import { useProductStore } from '../store/useProductStore';
 import { useRepairStore } from '../store/useRepairStore';
 import { useOrderStore } from '../store/useOrderStore'; 
-
+import { useMessageStore } from '../store/useMessageStore';
+import { HiOutlineMail } from "react-icons/hi"; // Add the mail icon
 import { 
   HiOutlineCube,
   HiOutlineTruck,
@@ -25,6 +26,7 @@ const StatCard = ({ label, value, color = "text-slate-900" }) => (
 const AdminDashboard = () => {
   const { products, fetchProducts, addProduct, deleteProduct } = useProductStore();
   const { orders, loading, fetchOrders, updateOrderStatus, deleteOrder } = useOrderStore();
+  const { messages, fetchMessages, loading: messagesLoading } = useMessageStore();
   // --- REPAIR STORE ---
   const {
     repairSamples,
@@ -37,6 +39,7 @@ const AdminDashboard = () => {
     
     
   } = useRepairStore();
+  
 
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -75,6 +78,9 @@ const categoryData = {
     fetchUserRepairs();
     fetchAllUsers();
     fetchOrders();
+    fetchMessages(); // ADD THIS LINE
+  
+      // ... rest of your state ...
   }, []);
 
   // --- Asset handlers ---
@@ -293,27 +299,27 @@ const getImageUrl = (path) => {
         </div>
       )}
 
-      {/* SIDEBAR */}
-      <aside className="w-72 bg-slate-950 text-white p-8 flex flex-col border-r border-slate-800">
-        <div className="mb-12">
-          <h1 className="text-2xl font-black text-blue-500 italic tracking-tighter">IT ARENA</h1>
-          <p className="text-[8px] font-bold text-slate-500 uppercase tracking-[0.3em]">Central Management</p>
-        </div>
-        <nav className="space-y-2 flex-1">
-          {['inventory', 'orders', 'users', 'repair'].map((view) => (
-            <button 
-              key={view} 
-              onClick={() => setCurrentView(view)} 
-              className={`w-full flex items-center gap-4 text-left font-bold text-xs p-4 rounded-2xl transition-all capitalize ${currentView === view ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-900'}`}
-            >
-              {view === 'inventory' ? <HiOutlineCube /> 
-               : view === 'orders' ? <HiOutlineTruck /> 
-               : view === 'users' ? <HiOutlineUserGroup /> 
-               : <HiOutlineCog />} {view === 'repair' ? 'Repair Management' : view.charAt(0).toUpperCase() + view.slice(1)}
-            </button>
-          ))}
-        </nav>
-      </aside>
+{/* SIDEBAR */}
+<aside className="w-72 bg-slate-950 text-white p-8 flex flex-col border-r border-slate-800">
+  {/* ... branding info ... */}
+  <nav className="space-y-2 flex-1">
+    {['inventory', 'orders', 'users', 'repair', 'messages'].map((view) => ( // Added 'messages' here
+      <button 
+        key={view} 
+        onClick={() => setCurrentView(view)} 
+        className={`w-full flex items-center gap-4 text-left font-bold text-xs p-4 rounded-2xl transition-all capitalize ${currentView === view ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-900'}`}
+      >
+        {view === 'inventory' ? <HiOutlineCube /> 
+         : view === 'orders' ? <HiOutlineTruck /> 
+         : view === 'users' ? <HiOutlineUserGroup /> 
+         : view === 'messages' ? <HiOutlineMail /> // Uses the Mail icon
+         : <HiOutlineCog />} 
+        
+        {view === 'repair' ? 'Repair Management' : view === 'messages' ? 'Messages' : view.charAt(0).toUpperCase() + view.slice(1)}
+      </button>
+    ))}
+  </nav>
+</aside>
 
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col overflow-hidden">
@@ -402,6 +408,56 @@ const getImageUrl = (path) => {
               </div>
             </div>
           )}
+
+          {/* --- VIEW: MESSAGES --- */}
+{currentView === 'messages' && (
+  <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full animate-in fade-in duration-500">
+    <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+      <div>
+        <h3 className="font-black text-slate-800 uppercase tracking-tight text-xl">Inbox</h3>
+        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Customer Inquiries</p>
+      </div>
+      <span className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">
+        {(messages || []).length} New Messages
+      </span>
+    </div>
+
+    <div className="flex-1 overflow-y-auto p-8 space-y-4">
+      {(!messages || messages.length === 0) ? (
+        <div className="py-32 text-center">
+          <HiOutlineMail className="mx-auto text-4xl text-slate-200 mb-4" />
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">No Messages Found</p>
+        </div>
+      ) : (
+        messages.map((msg) => (
+          <div key={msg.id} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 hover:border-blue-300 transition-all group">
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex items-center gap-4">
+                <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs">
+                  {msg.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <h4 className="font-black text-slate-900 uppercase text-sm">{msg.name}</h4>
+                  <p className="text-[10px] font-bold text-slate-400">{msg.email}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                 <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                  {new Date(msg.created_at).toLocaleDateString('en-GB')}
+                </span>
+                {msg.phone && <p className="text-[9px] font-bold text-blue-500 mt-1">{msg.phone}</p>}
+              </div>
+            </div>
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 text-slate-600 text-xs leading-relaxed shadow-sm group-hover:shadow-md transition-shadow">
+              {msg.message}
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
+)}
+    
         {/* ORDERS MANAGEMENT */}
 {currentView === 'orders' && (
   <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
@@ -675,6 +731,47 @@ const getImageUrl = (path) => {
               className="text-[10px] text-slate-400 w-full file:mr-4 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:font-black file:bg-blue-600 file:text-white" 
             />
           </div>
+          {/* --- VIEW: MESSAGES --- */}
+{currentView === 'messages' && (
+  <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full">
+    <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
+      <div>
+        <h3 className="font-black text-slate-800 uppercase tracking-tight text-xl">Customer Messages</h3>
+        <p className="text-[10px] font-bold text-blue-500 uppercase tracking-widest">Client Inquiry Inbox</p>
+      </div>
+      <span className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">
+        {messages.length} Total Inquiries
+      </span>
+    </div>
+
+    <div className="flex-1 overflow-y-auto p-8 space-y-4">
+      {messages.length > 0 ? (
+        messages.map((msg) => (
+          <div key={msg.id} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 hover:border-blue-300 transition-all">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h4 className="font-black text-slate-900 uppercase text-sm">{msg.name}</h4>
+                <p className="text-[10px] font-bold text-slate-400">{msg.email}</p>
+                {msg.phone && <p className="text-[10px] font-bold text-blue-500 uppercase">{msg.phone}</p>}
+              </div>
+              <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">
+                {new Date(msg.created_at).toLocaleDateString()}
+              </span>
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 text-slate-600 text-xs leading-relaxed">
+              {msg.message}
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="py-32 text-center">
+          <HiOutlineMail className="mx-auto text-4xl text-slate-200 mb-4" />
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-[0.2em]">Inbox is empty</p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
           
           {/* IMAGE PREVIEW - Restored visibility */}
           {repairPreview ? (
